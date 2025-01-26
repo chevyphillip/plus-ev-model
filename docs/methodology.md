@@ -33,14 +33,33 @@
    - Data validation and cleaning
 
 2. Feature Engineering
-   - Rolling averages (5-game window)
-   - Season-to-date statistics
+   - Rolling averages (5-game window):
+     - Points, assists, rebounds
+     - Calculated using window functions
+     - Updated daily for accuracy
+   - Opponent statistics:
+     - Points allowed average (league avg: 10.44 PPG)
+     - Assist rate analysis (correlation: 0.163)
+     - Rebound rate normalized to 0-1 scale
+   - Home/Away performance splits:
+     - Points differential (+0.22 home advantage)
+     - Assist differential (+0.09 home advantage)
    - Performance trend indicators
+   - Season-to-date statistics
 
 3. Data Transformation
-   - Type conversion and standardization
-   - Missing value handling
-   - Outlier detection
+   - Type conversion and standardization:
+     - Numeric validation for all metrics
+     - Statistical range verification
+     - Format consistency checks
+   - Missing value handling:
+     - Complete NULL resolution
+     - Rolling average calculations
+     - Opponent statistics validation
+   - Outlier detection:
+     - Z-score analysis (>2 std dev)
+     - Performance anomaly tracking
+     - Venue impact quantification
 
 ## Model Architecture
 
@@ -142,10 +161,22 @@ Chris Paul             97.0%    8.7
 
 #### Data Quality
 
-- Schema validation
-- Type checking
-- Range validation
-- Consistency rules
+- Schema validation:
+  - Primary/foreign key integrity
+  - Column type enforcement
+  - Constraint validation
+- Data quality metrics:
+  - Completeness (NULL checks)
+  - Accuracy (statistical validation)
+  - Consistency (cross-reference checks)
+- Value range validation:
+  - Points: 0.0 to 44.2 range
+  - Opponent metrics: 0.0 to 31.0
+  - Rebound rates: 0.000 to 0.237
+- Consistency rules:
+  - Rolling average accuracy
+  - Home/away split validation
+  - Statistical correlation checks
 
 ## Monitoring and Maintenance
 
