@@ -1,147 +1,205 @@
-# NBA Assist Prediction Model Methodology
+# NBA Stats Pipeline and Model Methodology
 
-## Overview
+## Data Pipeline Architecture
 
-The NBA Assist Prediction Model uses logistic regression to predict the probability of a player recording 5 or more assists in their next game. The model leverages historical player statistics and rolling averages to make predictions.
+### 1. Data Collection
 
-## Data Pipeline
-
-### Data Collection
-
-- Source: NBA official statistics via NBA API
+- Source: NBA official API
 - Frequency: Daily updates
-- Storage: DuckDB database for efficient querying and storage
+- Scope: Last 4 seasons (2021-22 through 2024-25)
+- Statistics: Per-game averages and totals
 
-### Feature Engineering
+### 2. Database Architecture
 
-1. Rolling Statistics (5-game window):
-   - Assists
-   - Points
-   - Minutes played
-   - Field goal percentage
-   - Plus/minus
+#### Local DuckDB
 
-2. Feature Importance (normalized coefficients):
+- Primary storage for raw and processed data
+- Schema optimized for analytical queries
+- Indices on frequently accessed columns
+- Support for complex SQL operations
 
-   ```
-   ast_rolling_5:        2.23
-   pts_rolling_5:        0.65
-   min_rolling_5:        0.64
-   fg_pct_rolling_5:     0.27
-   plus_minus_rolling_5: 0.01
-   ```
+#### MotherDuck Cloud Integration
+
+- Real-time sync with local database
+- Cloud-based access for collaboration
+- Automatic backup and versioning
+- Distributed query execution
+
+### 3. Data Processing Steps
+
+1. Raw Data Ingestion
+   - NBA API connection with rate limiting
+   - JSON response parsing
+   - Data validation and cleaning
+
+2. Feature Engineering
+   - Rolling averages (5-game window)
+   - Season-to-date statistics
+   - Performance trend indicators
+
+3. Data Transformation
+   - Type conversion and standardization
+   - Missing value handling
+   - Outlier detection
 
 ## Model Architecture
 
-### Logistic Regression
+### 1. Assist Prediction Model
 
-- Binary classification (5+ assists vs. <5 assists)
-- Standardized features using StandardScaler
+#### Features
+
+- 5-game rolling averages:
+  - Assists (strongest predictor)
+  - Points
+  - Minutes played
+  - Field goal percentage
+  - Plus/minus
+
+#### Model Selection
+
+- Algorithm: Logistic Regression
+- Target: Binary classification (5+ assists)
+- Scaling: StandardScaler for feature normalization
 - Random state: 42 for reproducibility
 
-### Data Split
+### 2. Model Performance
 
-- Training set: 80% of data
-- Test set: 20% of data
-- Stratified by target variable
-
-## Model Performance
-
-### Metrics
+#### Metrics
 
 - Accuracy: 92.2%
-  - Overall correct predictions
 - Precision: 80.0%
-  - When model predicts 5+ assists, it's correct 80% of the time
 - Recall: 61.5%
-  - Model identifies 61.5% of actual 5+ assist games
 - F1 Score: 69.6%
-  - Harmonic mean of precision and recall
 - ROC AUC: 97.6%
-  - Excellent ability to rank predictions
 
-### Validation Results
+#### Feature Importance
+
+1. ast_rolling_5: 2.23
+2. pts_rolling_5: 0.65
+3. min_rolling_5: 0.64
+4. fg_pct_rolling_5: 0.27
+5. plus_minus_rolling_5: 0.01
+
+### 3. Validation Results
 
 Example predictions for top playmakers:
 
 ```
-Trae Young:        99.9% (10.6 avg)
-Tyrese Haliburton: 99.3% (9.5 avg)
-James Harden:      99.1% (9.4 avg)
-Nikola Jokić:      99.7% (9.2 avg)
-Chris Paul:        97.0% (8.7 avg)
+Player                  Prob    Avg
+Trae Young             99.9%   10.6
+Tyrese Haliburton      99.3%    9.5
+James Harden           99.1%    9.4
+Nikola Jokić           99.7%    9.2
+Chris Paul             97.0%    8.7
 ```
 
 ## Implementation Details
 
-### Feature Processing
+### 1. Database Schema
 
-1. Data sorting by player and season
-2. Rolling window calculations (5 games)
-3. Feature standardization
-4. Target variable creation (binary: ≥5 assists)
+#### player_stats
 
-### Model Training
+- Primary key: (player_id, season)
+- Game-by-game statistics
+- Temporal tracking with last_updated
 
-1. Data preparation and splitting
-2. Feature scaling
-3. Model fitting with logistic regression
-4. Performance evaluation on test set
+#### player_season_averages
 
-### Prediction Pipeline
+- Primary key: (player_id, start_season, end_season)
+- Aggregated season statistics
+- Performance metrics
 
-1. Fetch player's recent games
-2. Calculate rolling averages
-3. Scale features
-4. Generate probability prediction
-5. Return prediction with confidence score
+#### data_metadata
 
-## Limitations and Considerations
+- Pipeline execution tracking
+- Data freshness monitoring
+- Version control
 
-1. Data Dependencies
-   - Requires at least 5 games of history
-   - Sensitive to missing data
+### 2. Data Synchronization
 
-2. Model Assumptions
-   - Linear relationship between features
-   - Independence between observations
+#### Local to Cloud
 
-3. External Factors Not Considered
-   - Injuries
-   - Team matchups
-   - Back-to-back games
-   - Home/away splits
+1. Table structure replication
+2. Data transfer via Parquet format
+3. Index recreation
+4. Metadata synchronization
+
+#### Incremental Updates
+
+1. Change detection
+2. Differential sync
+3. Conflict resolution
+4. Consistency checks
+
+### 3. Error Handling
+
+#### API Failures
+
+- Retry mechanism
+- Rate limit compliance
+- Error logging
+- Fallback options
+
+#### Data Quality
+
+- Schema validation
+- Type checking
+- Range validation
+- Consistency rules
+
+## Monitoring and Maintenance
+
+### 1. Performance Monitoring
+
+#### Database Metrics
+
+- Query performance
+- Storage utilization
+- Sync latency
+- Cache efficiency
+
+#### Model Metrics
+
+- Prediction accuracy
+- Feature drift
+- System latency
+- Resource usage
+
+### 2. Maintenance Procedures
+
+#### Data Pipeline
+
+1. Daily NBA stats update
+2. Cloud synchronization
+3. Data validation
+4. Performance optimization
+
+#### Model Updates
+
+1. Weekly retraining
+2. Performance evaluation
+3. Feature importance analysis
+4. Threshold adjustment
 
 ## Future Improvements
 
-1. Feature Engineering
-   - Incorporate opponent defensive ratings
-   - Add team pace factors
-   - Include rest days between games
+### 1. Data Enhancements
 
-2. Model Enhancements
-   - Experiment with non-linear models
-   - Add ensemble methods
-   - Implement cross-validation
+- Player injury tracking
+- Team schedule analysis
+- Historical trend analysis
+- Opponent matchup data
 
-3. Prediction Refinements
-   - Dynamic threshold adjustment
-   - Confidence interval calculations
-   - Uncertainty quantification
+### 2. Model Improvements
 
-## Usage Guidelines
+- Advanced feature engineering
+- Ensemble methods
+- Neural network exploration
+- Real-time predictions
 
-1. Data Freshness
-   - Update stats daily
-   - Verify data quality
-   - Check for missing games
+### 3. Infrastructure
 
-2. Prediction Interpretation
-   - Consider probability scores
-   - Review recent performance
-   - Account for external factors
-
-3. Model Monitoring
-   - Track prediction accuracy
-   - Monitor feature distributions
-   - Validate assumptions regularly
+- Automated deployment
+- Monitoring dashboards
+- Alert system
+- Backup strategy

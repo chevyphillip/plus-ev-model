@@ -1,179 +1,175 @@
-# Technical Requirements & Implementation Guide
+# Technical Requirements
 
-## Core Components
+## System Requirements
 
-### 1. Data Integration Requirements
+1. Python 3.10 or higher
+2. Poetry for dependency management
+3. DuckDB for local data storage
+4. MotherDuck account for cloud database
 
-#### ODDSAPI Integration
-- Real-time odds fetching for NBA player props
-- Required endpoints:
-  * Player props markets
-  * Line movement history
-  * Sharp book (Pinnacle, BetOnline) odds
-- Rate limiting considerations
-- Error handling and retry logic
-- Data validation and normalization
+## Dependencies
 
-#### NBA-API Integration
-- Historical player statistics
-- Game logs and trends
-- Player status (injuries, rest, etc.)
-- Team matchup data
-- Required metrics:
-  * Points, rebounds, assists
-  * Minutes played
-  * Usage rates
-  * Pace factors
-  * Recent performance trends
+### Core Dependencies
 
-#### DuckDB Storage
-- Schema design for:
-  * Historical odds and lines
-  * Player performance data
-  * Bet tracking and results
-  * Model performance metrics
-- Indexing strategy
-- Query optimization
-- Backup procedures
+- pandas>=2.0.0
+- numpy>=1.24.0
+- scikit-learn>=1.6.1
+- duckdb>=0.9.0
+- nba_api>=1.4.0
+- python-dotenv>=1.0.0
 
-### 2. Core Logic Requirements
+### Development Dependencies
 
-#### Devig Calculations
-- Sharp book weighting methodology
-- Balanced book assumptions
-- Margin removal calculations
-- True probability derivation
-- Market efficiency analysis
+- pytest>=7.4.0
+- pytest-mock>=3.14.0
+- black>=23.0.0
+- isort>=5.12.0
+- mypy>=1.7.0
+- pylint>=3.0.0
 
-#### Monte Carlo Simulation
-- Performance requirements:
-  * 1000 iterations per prop
-  * Sub-second execution time
-- Distribution modeling
-- Random seed management
-- Variance analysis
-- Confidence intervals
+## Database Setup
 
-#### Expected Value Calculations
-- Kelly criterion implementation
-- Bankroll management rules
-- Risk assessment metrics
-- Value threshold definitions
-- Bet sizing optimization
+### Local DuckDB
 
-### 3. Excel Integration Requirements
+- File location: data/nba_stats.duckdb
+- Schema includes:
+  - player_stats: Individual game statistics
+  - player_season_averages: Calculated season averages
+  - data_metadata: Pipeline metadata
 
-#### Dashboard Components
-- Real-time data refresh
-- Required views:
-  * Daily props overview
-  * Value bet opportunities
-  * Historical performance
-  * Bankroll metrics
-  * Risk management alerts
-- Automated formatting
-- Performance optimization
+### MotherDuck Cloud Database
 
-#### Data Export Pipeline
-- Real-time sync capabilities
-- Error handling
-- Data validation
-- Version control
+- Database name: nba-ml-model-db
+- Requires MOTHERDUCK_TOKEN in .env
+- Automatic sync with local database
+- Same schema as local database
 
-## Implementation Milestones
+## Data Pipeline
 
-### Phase 1: Foundation (Weeks 1-2)
-1. Set up development environment
-2. Implement API integrations
-3. Design database schema
-4. Create core data models
+### NBA Stats Collection
 
-### Phase 2: Core Logic (Weeks 3-4)
-1. Develop devig engine
-2. Build Monte Carlo simulation
-3. Implement EV calculations
-4. Create bankroll management system
+- Uses NBA API for official statistics
+- Rate limited with configurable delay
+- Fetches per-game statistics
 
-### Phase 3: Excel Integration (Weeks 5-6)
-1. Design dashboard layout
-2. Implement data export
-3. Create visualization components
-4. Build automated refresh system
+### Data Processing
 
-### Phase 4: Testing & Optimization (Weeks 7-8)
-1. Comprehensive testing
-2. Performance optimization
-3. Documentation
-4. User acceptance testing
+- Rolling averages calculation
+- Feature engineering
+- Data validation and cleaning
 
-## Technical Stack
+### Model Requirements
 
-### Languages & Frameworks
-- Python 3.13+
-- Pandas for data manipulation
-- NumPy for numerical computations
-- OpenPyXL for Excel integration
+- Logistic regression for binary predictions
+- Feature standardization
+- Cross-validation support
 
-### Data Storage
-- DuckDB for analytical queries
-- CSV for data export/import
-- Git LFS for version control
+## Development Setup
 
-### Development Tools
-- Poetry for dependency management
-- Pytest for testing
-- Black for code formatting
-- MyPy for type checking
+### Environment Variables
+
+```env
+# Database Configuration
+LOCAL_DB_PATH=data/nba_stats.duckdb
+MOTHERDUCK_TOKEN=your_token_here
+
+# NBA API Configuration
+NBA_API_DELAY=1.0
+
+# Logging
+LOG_LEVEL=INFO
+```
+
+### Directory Structure
+
+```
+plus-ev-model/
+├── data/                  # Data storage
+│   ├── raw/              # Raw API data
+│   ├── processed/        # Cleaned data
+│   ├── interim/          # Intermediate processing
+│   └── external/         # Third-party data
+├── docs/                 # Documentation
+├── src/                  # Source code
+│   ├── data/            # Data ingestion
+│   ├── models/          # ML models
+│   └── core/            # Core utilities
+└── tests/               # Test suite
+```
+
+### Code Style
+
+- Black for formatting
+- isort for import sorting
+- Pylint for linting
+- Mypy for type checking
+
+## Testing Requirements
+
+### Unit Tests
+
+- pytest for test framework
+- Coverage reporting
+- Mock external APIs
+
+### Integration Tests
+
+- Database operations
+- API interactions
+- End-to-end pipeline
 
 ## Performance Requirements
 
-### Response Times
-- Odds processing: < 1 second
-- Monte Carlo simulation: < 2 seconds per prop
-- Dashboard refresh: < 5 seconds
-- API data fetch: < 3 seconds
+### Data Pipeline
 
-### Accuracy Requirements
-- EV calculations: ±0.1%
-- Probability estimates: ±1%
-- Bankroll calculations: ±$0.01
+- Rate limiting for API calls
+- Efficient database operations
+- Incremental updates
 
-### System Requirements
-- CPU: 4+ cores recommended
-- RAM: 8GB minimum
-- Storage: 50GB+ for historical data
-- Network: Stable internet connection
+### Model Performance
+
+- Minimum 80% precision
+- Sub-second prediction time
+- Regular retraining capability
+
+## Monitoring and Logging
+
+### Logging
+
+- Structured logging
+- Different log levels
+- File and console output
+
+### Metrics
+
+- Model performance tracking
+- Data pipeline statistics
+- API call monitoring
 
 ## Security Requirements
 
-### API Security
-- Secure key storage
-- Rate limit monitoring
-- Request logging
-- Error handling
+### API Keys
 
-### Data Security
-- Encryption at rest
-- Access controls
-- Audit logging
-- Regular backups
+- Secure storage in .env
+- No keys in version control
+- Regular key rotation
 
-## Monitoring & Maintenance
+### Database Access
 
-### Performance Monitoring
-- API response times
-- Calculation speed
-- Resource usage
-- Error rates
+- MotherDuck token management
+- Connection string security
+- Access control
 
-### Data Quality
-- Odds validation
-- Results verification
-- Model accuracy tracking
-- Data consistency checks
+## Deployment Requirements
 
-### Maintenance Procedures
-- Daily data backup
-- Weekly performance review
-- Monthly model evaluation
-- Quarterly system updates
+### Local Development
+
+- Poetry for dependency management
+- Pre-commit hooks
+- Development database
+
+### Production
+
+- MotherDuck cloud database
+- Automated data updates
+- Model versioning
