@@ -1,7 +1,9 @@
 """Database configuration and connection management."""
 
 import os
-from typing import Optional
+import logging
+from typing import Dict, Any, Tuple, Optional, cast
+from pathlib import Path
 from duckdb import DuckDBPyConnection
 import duckdb
 from dotenv import load_dotenv
@@ -9,6 +11,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class DatabaseConfig:
+    # Configure logging
+    logger = logging.getLogger(__name__)
     """Database configuration and connection management."""
     
     def __init__(self, use_motherduck: bool = True) -> None:
@@ -18,7 +22,8 @@ class DatabaseConfig:
             use_motherduck: Whether to use MotherDuck cloud database
         """
         self.use_motherduck = use_motherduck
-        self.local_path = os.getenv('LOCAL_DB_PATH', 'data/nba_stats.duckdb')
+        local_path = os.getenv('LOCAL_DB_PATH', 'data/nba_stats.duckdb')
+        self.local_path = str(Path(local_path).resolve())
         self.motherduck_token = os.getenv('MOTHERDUCK_TOKEN')
         
         if self.use_motherduck and not self.motherduck_token:
@@ -34,7 +39,11 @@ class DatabaseConfig:
         """Create a database connection."""
         conn_str = self.get_connection_string()
         
-        config = {
+        # Validate local path exists or can be created
+        if not self.use_motherduck:
+            os.makedirs(os.path.dirname(self.local_path), exist_ok=True)
+        
+        config: Dict[str, Any] = {
             "motherduck_token": self.motherduck_token
         } if self.use_motherduck else {}
         
@@ -64,26 +73,43 @@ class DatabaseConfig:
                 print(f"Syncing table {table_name}...")
                 
                 # Create table in MotherDuck if it doesn't exist
-                schema = local_conn.execute(f"""
-                    SELECT sql FROM sqlite_master 
-                    WHERE type='table' AND name='{table_name}'
-                """).fetchone()[0]
+                # Get table schema
+                result: Optional[Tuple[str]] = cast(
+                    Optional[Tuple[str]], 
+                    local_conn.execute(f"""
+                        SELECT sql FROM sqlite_master 
+                        WHERE type='table' AND name='{table_name}'
+                    """).fetchone()
+                )
                 
-                md_conn.execute(f"DROP TABLE IF EXISTS {table_name}")
-                md_conn.execute(schema)
+                if result is None or not result[0]:
+                    self.logger.error(f"Could not find schema for table {table_name}")
+                    continue
+                
+                # Create table in MotherDuck
+                try:
+                    md_conn.execute(f"DROP TABLE IF EXISTS {table_name}")
+                    md_conn.execute(result[0])
+                except Exception as e:
+                    self.logger.error(f"Failed to create table {table_name}: {str(e)}")
+                    continue
                 
                 # Copy data
-                local_conn.execute(f"""
-                    COPY (SELECT * FROM {table_name}) 
-                    TO 'temp_{table_name}.parquet' (FORMAT PARQUET)
-                """)
-                
-                md_conn.execute(f"""
-                    COPY {table_name} FROM 'temp_{table_name}.parquet'
-                """)
-                
-                # Cleanup
-                os.remove(f"temp_{table_name}.parquet")
+                temp_file = f"temp_{table_name}.parquet"
+                try:
+                    local_conn.execute(f"""
+                        COPY (SELECT * FROM {table_name}) 
+                        TO '{temp_file}' (FORMAT PARQUET)
+                    """)
+                    
+                    md_conn.execute(f"""
+                        COPY {table_name} FROM '{temp_file}'
+                    """)
+                except Exception as e:
+                    self.logger.error(f"Failed to copy data for table {table_name}: {str(e)}")
+                finally:
+                    if os.path.exists(temp_file):
+                        os.remove(temp_file)
                 
             print("Database sync complete!")
             

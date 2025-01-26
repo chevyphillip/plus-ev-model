@@ -1,304 +1,189 @@
 """NBA statistics data pipeline."""
 
 import logging
-from typing import Dict, Any, Optional
+import os
 import pandas as pd
 from datetime import datetime
-from pathlib import Path
-from nba_api.stats.endpoints import leaguedashplayerstats  # type: ignore
-import json
 import time
-import duckdb
+from nba_api.stats.endpoints import leaguedashplayerstats  # type: ignore
 from duckdb import DuckDBPyConnection
+from pandas import DataFrame, Index
+from dotenv import load_dotenv
+from src.data.db_config import DatabaseConfig
 
-from src.data.db_config import DatabaseConfig, get_db_connection
-
+load_dotenv()
 logger = logging.getLogger(__name__)
 
+# Configure NBA API delay
+NBA_API_DELAY = float(os.getenv('NBA_API_DELAY', '1.0'))
+
+
 class NBADataPipeline:
+    """Pipeline for fetching and processing NBA player statistics."""
+    
     def __init__(self, use_motherduck: bool = True) -> None:
-        """Initialize the NBA data pipeline.
+        """Initialize the pipeline with database connection.
         
         Args:
             use_motherduck: Whether to use MotherDuck cloud database
         """
-        self.db_config = DatabaseConfig(use_motherduck)
-        self.conn: Optional[DuckDBPyConnection] = None
+        db_config = DatabaseConfig(use_motherduck)
+        self.conn: DuckDBPyConnection = db_config.connect()
+        self._init_schema()
+    
+    def _init_schema(self) -> None:
+        """Initialize the database schema."""
+        self.conn.execute("""
+            DROP TABLE IF EXISTS player_stats;
+            
+            CREATE TABLE player_stats (
+                player_id INTEGER PRIMARY KEY,
+                player_name VARCHAR,
+                team_id INTEGER,
+                team_abbreviation VARCHAR,
+                age DOUBLE,
+                gp INTEGER,
+                min DOUBLE,
+                fgm DOUBLE,
+                fga DOUBLE,
+                fg_pct DOUBLE,
+                fg3m DOUBLE,
+                fg3a DOUBLE,
+                fg3_pct DOUBLE,
+                ftm DOUBLE,
+                fta DOUBLE,
+                ft_pct DOUBLE,
+                oreb DOUBLE,
+                dreb DOUBLE,
+                reb DOUBLE,
+                ast DOUBLE,
+                stl DOUBLE,
+                blk DOUBLE,
+                tov DOUBLE,
+                pts DOUBLE,
+                plus_minus DOUBLE,
+                last_updated TIMESTAMP
+            );
+            
+            CREATE UNIQUE INDEX IF NOT EXISTS player_stats_id_idx ON player_stats(player_id)
+        """)
+    
+    def fetch_player_stats(self) -> DataFrame:
+        """Fetch current player statistics from NBA API.
         
-    def set_connection(self, conn: DuckDBPyConnection) -> None:
-        """Set the database connection.
+        Returns:
+            DataFrame containing player statistics with last_updated timestamp
+        """
+        try:
+            # Add delay to avoid rate limiting
+            time.sleep(NBA_API_DELAY)
+            
+            # Get stats from NBA API
+            raw_stats = leaguedashplayerstats.LeagueDashPlayerStats(
+                timeout=30,
+                per_mode_detailed='PerGame'
+            ).get_data_frames()
+            
+            if not raw_stats or len(raw_stats) == 0:
+                raise ValueError("No data returned from NBA API")
+            
+            # Convert to DataFrame and process
+            stats = DataFrame(raw_stats[0])
+            stats.columns = Index([col.lower() for col in stats.columns])
+            stats['last_updated'] = datetime.now()
+            
+            return stats
+            
+        except Exception as e:
+            logger.error(f"Error fetching player stats: {str(e)}")
+            raise
+    
+    def store_stats_in_db(self, stats: pd.DataFrame) -> None:
+        """Store player statistics in the database.
         
         Args:
-            conn: DuckDB connection
+            stats: DataFrame containing player statistics
         """
-        self.conn = conn
-        
-    def _init_schema(self) -> None:
-        """Initialize database schema if not exists"""
-        if not self.conn:
-            raise ValueError("Database connection not initialized")
-            
-        # Create schema if not exists
-        self.conn.execute("""
-            CREATE TABLE IF NOT EXISTS player_stats (
-                    player_id INTEGER,
-                    season VARCHAR,
-                    player_name VARCHAR,
-                    team_id VARCHAR,
-                    team_abbreviation VARCHAR,
-                    age REAL,
-                    gp INTEGER,
-                    min REAL,
-                    fgm REAL,
-                    fga REAL,
-                    fg_pct REAL,
-                    fg3m REAL,
-                    fg3a REAL,
-                    fg3_pct REAL,
-                    ftm REAL,
-                    fta REAL,
-                    ft_pct REAL,
-                    oreb REAL,
-                    dreb REAL,
-                    reb REAL,
-                    ast REAL,
-                    stl REAL,
-                    blk REAL,
-                    tov REAL,
-                    pts REAL,
-                    plus_minus REAL,
-                    last_updated TIMESTAMP,
-                    PRIMARY KEY (player_id, season)
-                );
-
-                CREATE TABLE IF NOT EXISTS player_season_averages (
-                    player_id INTEGER,
-                    player_name VARCHAR,
-                    start_season VARCHAR,
-                    end_season VARCHAR,
-                    num_seasons INTEGER,
-                    avg_gp REAL,
-                    avg_min REAL,
-                    avg_pts REAL,
-                    avg_reb REAL,
-                    avg_ast REAL,
-                    avg_stl REAL,
-                    avg_blk REAL,
-                    avg_tov REAL,
-                    avg_fg_pct REAL,
-                    avg_fg3_pct REAL,
-                    avg_ft_pct REAL,
-                    last_updated TIMESTAMP,
-                    PRIMARY KEY (player_id, start_season, end_season)
-                );
-
-                CREATE TABLE IF NOT EXISTS data_metadata (
-                    key VARCHAR PRIMARY KEY,
-                    value VARCHAR,
-                    last_updated TIMESTAMP
-                );
-
-                CREATE INDEX IF NOT EXISTS idx_player_stats_season ON player_stats(season);
-                CREATE INDEX IF NOT EXISTS idx_player_stats_player ON player_stats(player_id);
-                CREATE INDEX IF NOT EXISTS idx_season_averages_player ON player_season_averages(player_id);
-            """)
-    
-    def fetch_player_stats(self, season: str = "2024-25") -> pd.DataFrame:
-        """Fetch current season player stats from NBA API"""
         try:
-            # Initialize API client with timeout and retry logic
-            stats = leaguedashplayerstats.LeagueDashPlayerStats(
-                season=season,
-                per_mode_detailed='PerGame',
-                measure_type_detailed_defense='Base',
-                headers={
-                    'User-Agent': 'Mozilla/5.0',
-                    'Origin': 'https://www.nba.com',
-                    'Referer': 'https://www.nba.com/'
-                },
-                timeout=10
-            )
+            # Map DataFrame columns to our schema
+            stats_to_insert = stats[[
+                'player_id', 'player_name', 'team_id', 'team_abbreviation',
+                'age', 'gp', 'min', 'fgm', 'fga', 'fg_pct', 'fg3m', 'fg3a',
+                'fg3_pct', 'ftm', 'fta', 'ft_pct', 'oreb', 'dreb', 'reb',
+                'ast', 'stl', 'blk', 'tov', 'pts', 'plus_minus', 'last_updated'
+            ]]
             
-            # Parse and validate JSON response
-            try:
-                response_data = json.loads(stats.get_normalized_json())
-                logger.debug(f"API status code: {response_data.get('statusCode')}")
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse API response: {str(e)}")
-                raise ValueError("Invalid JSON response from API")
+            # Convert DataFrame to DuckDB table
+            self.conn.register('stats_df', stats_to_insert)
             
-            # Get DataFrame from API client with error handling
-            try:
-                df = stats.get_data_frames()[0]
-            except (KeyError, IndexError) as e:
-                logger.error(f"Failed to retrieve data frame: {str(e)}")
-                logger.error("Failed to process API response")
-                raise ValueError("Missing expected data structure in API response")
-            
-            if df.empty:
-                logger.warning(f"Empty DataFrame received for season {season}")
-                return pd.DataFrame()
-                
-            return self._validate_data(df)
-        except Exception as e:
-            logger.error(f"Failed to fetch player stats: {str(e)}")
-            raise
-    
-    def _validate_data(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Validate and transform API response data"""
-        required_columns = [
-            'PLAYER_ID', 'PLAYER_NAME', 'TEAM_ID', 'TEAM_ABBREVIATION',
-            'AGE', 'GP', 'MIN', 'FGM', 'FGA', 'FG_PCT', 'FG3M', 'FG3A',
-            'FG3_PCT', 'FTM', 'FTA', 'FT_PCT', 'OREB', 'DREB', 'REB',
-            'AST', 'STL', 'BLK', 'TOV', 'PTS', 'PLUS_MINUS'
-        ]
-        
-        if not all(col in df.columns for col in required_columns):
-            missing = set(required_columns) - set(df.columns)
-            raise ValueError(f"Missing required columns: {missing}")
-            
-        df = df[required_columns].copy()
-        df.columns = df.columns.str.lower()
-        df['last_updated'] = datetime.now()
-        return df
-    
-    def store_stats_in_db(self, df: pd.DataFrame, season: str | None = None) -> None:
-        """Store player stats for a specific season into database"""
-        if not self.conn:
-            raise ValueError("Database connection not initialized")
-            
-        try:
-            if season is not None:
-                df['season'] = season
-            elif 'season' not in df.columns:
-                df['season'] = datetime.now().year
-            
-            self.conn.register('temp_stats', df)
+            # Insert new data with explicit column list
             self.conn.execute("""
-                INSERT OR REPLACE INTO player_stats (
-                    player_id, season, player_name, team_id, team_abbreviation,
-                    age, gp, min, fgm, fga, fg_pct, fg3m, fg3a, fg3_pct,
-                    ftm, fta, ft_pct, oreb, dreb, reb, ast, stl, blk,
-                    tov, pts, plus_minus, last_updated
+                INSERT INTO player_stats (
+                    player_id, player_name, team_id, team_abbreviation,
+                    age, gp, min, fgm, fga, fg_pct, fg3m, fg3a,
+                    fg3_pct, ftm, fta, ft_pct, oreb, dreb, reb,
+                    ast, stl, blk, tov, pts, plus_minus, last_updated
                 )
-                SELECT 
-                    player_id, season, player_name, team_id::VARCHAR, team_abbreviation,
-                    age, gp, min, fgm, fga, fg_pct, fg3m, fg3a, fg3_pct,
-                    ftm, fta, ft_pct, oreb, dreb, reb, ast, stl, blk,
-                    tov, pts, plus_minus, last_updated::TIMESTAMP
-                FROM temp_stats
+                SELECT * FROM stats_df
+                ON CONFLICT (player_id) DO UPDATE SET
+                    player_name = EXCLUDED.player_name,
+                    team_id = EXCLUDED.team_id,
+                    team_abbreviation = EXCLUDED.team_abbreviation,
+                    age = EXCLUDED.age,
+                    gp = EXCLUDED.gp,
+                    min = EXCLUDED.min,
+                    fgm = EXCLUDED.fgm,
+                    fga = EXCLUDED.fga,
+                    fg_pct = EXCLUDED.fg_pct,
+                    fg3m = EXCLUDED.fg3m,
+                    fg3a = EXCLUDED.fg3a,
+                    fg3_pct = EXCLUDED.fg3_pct,
+                    ftm = EXCLUDED.ftm,
+                    fta = EXCLUDED.fta,
+                    ft_pct = EXCLUDED.ft_pct,
+                    oreb = EXCLUDED.oreb,
+                    dreb = EXCLUDED.dreb,
+                    reb = EXCLUDED.reb,
+                    ast = EXCLUDED.ast,
+                    stl = EXCLUDED.stl,
+                    blk = EXCLUDED.blk,
+                    tov = EXCLUDED.tov,
+                    pts = EXCLUDED.pts,
+                    plus_minus = EXCLUDED.plus_minus,
+                    last_updated = EXCLUDED.last_updated
             """)
-            logger.info(f"Upserted {len(df)} player records for season {season}")
+            
+            # Cleanup
+            self.conn.unregister('stats_df')
+            
         except Exception as e:
-            logger.error(f"Database operation failed: {str(e)}")
+            logger.error(f"Error storing player stats: {str(e)}")
             raise
-
-    def fetch_multiple_seasons(self, start_season: int = 2021, num_seasons: int = 4) -> Dict[str, pd.DataFrame]:
-        """Fetch stats for multiple seasons with rate limiting"""
-        seasons_data = {}
-        
-        for year in range(start_season, start_season + num_seasons):
-            season = f"{year}-{str(year+1)[2:]}"
-            try:
-                logger.info(f"Fetching data for season {season}")
-                df = self.fetch_player_stats(season)
-                if not df.empty:
-                    seasons_data[season] = df
-                # Rate limiting - wait 1 second between requests
-                time.sleep(1)
-            except Exception as e:
-                logger.error(f"Failed to fetch season {season}: {str(e)}")
-                continue
-        
-        return seasons_data
-
-    def calculate_season_averages(self, start_season: int = 2021, num_seasons: int = 4) -> None:
-        """Calculate and store player averages across specified seasons"""
-        if not self.conn:
-            raise ValueError("Database connection not initialized")
-            
-        seasons_data = self.fetch_multiple_seasons(start_season, num_seasons)
-        
-        if not seasons_data:
-            logger.error("No season data available for averaging")
-            return
-
-        # Store individual season data
-        for season, df in seasons_data.items():
-            self.store_stats_in_db(df, season)
-
-        # Calculate averages across seasons
-        try:
-            assert self.conn is not None  # For type checking
-            self.conn.execute(f"""
-                INSERT OR REPLACE INTO player_season_averages
-                SELECT 
-                    player_id,
-                    MAX(player_name) as player_name,
-                    MIN(season) as start_season,
-                    MAX(season) as end_season,
-                    COUNT(DISTINCT season) as num_seasons,
-                    AVG(gp) as avg_gp,
-                    AVG(min) as avg_min,
-                    AVG(pts) as avg_pts,
-                    AVG(reb) as avg_reb,
-                    AVG(ast) as avg_ast,
-                    AVG(stl) as avg_stl,
-                    AVG(blk) as avg_blk,
-                    AVG(tov) as avg_tov,
-                    AVG(fg_pct) as avg_fg_pct,
-                    AVG(fg3_pct) as avg_fg3_pct,
-                    AVG(ft_pct) as avg_ft_pct,
-                    NOW() as last_updated
-                FROM player_stats
-                WHERE season >= '{start_season}-{str(start_season+1)[2:]}'
-                AND season <= '{start_season+num_seasons-1}-{str(start_season+num_seasons)[2:]}'
-                GROUP BY player_id
-            """)
-            
-            # Update metadata
-            self.conn.execute("""
-                INSERT OR REPLACE INTO data_metadata (key, value, last_updated)
-                VALUES ('last_average_calculation', NOW()::VARCHAR, NOW())
-            """)
-            
-            logger.info("Successfully calculated and stored season averages")
-        except Exception as e:
-            logger.error(f"Failed to calculate season averages: {str(e)}")
-            raise
-
+    
     def close(self) -> None:
-        """Close database connection."""
+        """Close the database connection."""
         if self.conn:
-            assert self.conn is not None  # For type checking
             self.conn.close()
+        self.conn = None  # type: ignore
 
-def update_player_stats(use_motherduck: bool = True, start_season: int = 2021, num_seasons: int = 4) -> None:
-    """Main pipeline execution function to fetch and calculate multi-season averages.
+
+def update_player_stats(use_motherduck: bool = True) -> None:
+    """Main pipeline execution function to fetch and store current player statistics.
     
     Args:
         use_motherduck: Whether to use MotherDuck cloud database
-        start_season: First season to fetch (e.g., 2021 for 2021-22 season)
-        num_seasons: Number of seasons to fetch
     """
+    pipeline = None
     try:
         pipeline = NBADataPipeline(use_motherduck)
-        conn = get_db_connection(use_motherduck)
-        pipeline.set_connection(conn)
-        pipeline._init_schema()
-        pipeline.calculate_season_averages(start_season, num_seasons)
-        
-        # Sync to MotherDuck if enabled
-        if use_motherduck:
-            db_config = DatabaseConfig(use_motherduck)
-            db_config.sync_to_motherduck()
-            
-        logger.info(f"Successfully processed {num_seasons} seasons of player stats starting from {start_season}")
+        stats = pipeline.fetch_player_stats()
+        pipeline.store_stats_in_db(stats)
+        logger.info("Successfully updated player statistics")
     except Exception as e:
         logger.error(f"Failed to update player stats: {str(e)}")
         raise
     finally:
-        if 'pipeline' in locals():
+        if pipeline:
             pipeline.close()
 
 if __name__ == "__main__":
