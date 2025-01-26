@@ -1,0 +1,61 @@
+[tool.poetry]
+name = "plus-ev-model"
+version = "0.1.0"
+description = "NBA player props prediction model focusing on assist predictions"
+authors = ["Your Name <your.email@example.com>"]
+readme = "README.md"
+packages = [{ include = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pandas = "^2.0.0"
+numpy = "^1.24.0"
+scikit-learn = "^1.6.1"
+duckdb = "^0.9.0"
+nba_api = "^1.4.0"
+python-dotenv = "^1.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+pytest-mock = "^3.14.0"
+black = "^23.0.0"
+isort = "^5.12.0"
+mypy = "^1.7.0"
+pylint = "^3.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 100
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+
+[tool.pylint.messages_control]
+disable = [
+  "C0111", # missing-docstring
+  "C0103", # invalid-name
+  "C0330", # bad-continuation
+  "C0326", # bad-whitespace
+]
+
+[tool.pylint.format]
+max-line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"
