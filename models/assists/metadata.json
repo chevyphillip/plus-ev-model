@@ -1,0 +1,27 @@
+{
+  "prop_type": "assists",
+  "trained_at": "2025-01-26T21:48:27.210565",
+  "metrics": {
+    "mse": 2.212676347821133,
+    "rmse": 1.4875067555547883,
+    "mae": 1.0878937662394756,
+    "r2": 0.700890920901726
+  },
+  "feature_names": [
+    "ast_rolling_5",
+    "ast_rolling_10",
+    "ast_rolling_20",
+    "min",
+    "is_home",
+    "opp_pts_allowed_avg",
+    "fg_pct_rolling_5",
+    "fg_pct_rolling_10",
+    "fg_pct_rolling_20",
+    "plus_minus_rolling_5",
+    "plus_minus_rolling_10",
+    "plus_minus_rolling_20",
+    "ast_home",
+    "ast_away",
+    "opp_ast_allowed_avg"
+  ]
+}

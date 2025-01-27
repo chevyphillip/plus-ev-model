@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Prop Edges - NBA Props{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col">
+        <h1>Prop Edges</h1>
+        <p class="last-update">Last updated: {{ current_time }}</p>
+        <button id="refresh" class="btn btn-primary refresh-btn">
+            <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+        
+        <div class="form-group mb-3">
+            <label for="min-edge">Minimum Edge %:</label>
+            <input type="number" id="min-edge" class="form-control" value="5" style="width: 100px;">
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col">
+        <div class="table-responsive">
+            <table id="edges-table" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Player</th>
+                        <th>Team</th>
+                        <th>Prop</th>
+                        <th>Line</th>
+                        <th>Side</th>
+                        <th>Edge %</th>
+                        <th>Model Prob</th>
+                        <th>Market Prob</th>
+                        <th>Best Odds</th>
+                        <th>Book</th>
+                        <th>Kelly %</th>
+                        <th>EV</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    let table;
+    
+    // Initialize DataTable
+    function initTable() {
+        if (table) {
+            table.destroy();
+        }
+        
+        table = $('#edges-table').DataTable({
+            order: [[5, 'desc']],  // Sort by edge %
+            pageLength: 25,
+            columnDefs: [
+                {
+                    targets: [5, 6, 7, 10, 11],  // Percentage columns
+                    render: function(data, type, row) {
+                        return type === 'display' ? data + '%' : data;
+                    }
+                },
+                {
+                    targets: [8],  // Odds column
+                    render: function(data, type, row) {
+                        const odds = parseInt(data);
+                        const cls = odds > 0 ? 'positive-odds' : 'negative-odds';
+                        const sign = odds > 0 ? '+' : '';
+                        return type === 'display' ? 
+                            `<span class="${cls}">${sign}${odds}</span>` : 
+                            odds;
+                    }
+                },
+                {
+                    targets: [5],  // Edge column
+                    render: function(data, type, row) {
+                        return type === 'display' ? 
+                            `<span class="edge">${parseFloat(data).toFixed(1)}%</span>` : 
+                            data;
+                    }
+                }
+            ]
+        });
+    }
+    
+    // Load edges data
+    function loadData() {
+        const minEdge = $('#min-edge').val();
+        $.get(`/api/edges?min_edge=${minEdge}`, function(data) {
+            if (data.success) {
+                table.clear();
+                
+                data.edges.forEach(edge => {
+                    table.row.add([
+                        edge.player_name,
+                        edge.team,
+                        edge.prop_type,
+                        edge.line,
+                        edge.side,
+                        edge.edge,
+                        (edge.model_prob * 100).toFixed(1),
+                        (edge.market_prob * 100).toFixed(1),
+                        edge.odds,
+                        edge.book,
+                        edge.kelly.toFixed(2),
+                        edge.ev.toFixed(2)
+                    ]);
+                });
+                
+                table.draw();
+            }
+        });
+    }
+
+    // Initialize table
+    initTable();
+    
+    // Load initial data
+    loadData();
+
+    // Handle min edge changes
+    $('#min-edge').change(loadData);
+});
+</script>
+{% endblock %}

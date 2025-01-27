@@ -1,0 +1,32 @@
+{
+  "prop_type": "points",
+  "trained_at": "2025-01-26T21:48:16.886567",
+  "metrics": {
+    "mse": 20.850765417144842,
+    "rmse": 4.566263835691586,
+    "mae": 3.439688140999656,
+    "r2": 0.7466831730458696
+  },
+  "feature_names": [
+    "pts_rolling_5",
+    "pts_rolling_10",
+    "pts_rolling_20",
+    "min",
+    "is_home",
+    "opp_pts_allowed_avg",
+    "fg_pct_rolling_5",
+    "fg_pct_rolling_10",
+    "fg_pct_rolling_20",
+    "ft_pct_rolling_5",
+    "ft_pct_rolling_10",
+    "ft_pct_rolling_20",
+    "fg3_pct_rolling_5",
+    "fg3_pct_rolling_10",
+    "fg3_pct_rolling_20",
+    "plus_minus_rolling_5",
+    "plus_minus_rolling_10",
+    "plus_minus_rolling_20",
+    "pts_home",
+    "pts_away"
+  ]
+}

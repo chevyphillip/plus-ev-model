@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}{{ game.away_team }} @ {{ game.home_team }} - Props{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col">
+        <h1>{{ game.away_team }} @ {{ game.home_team }}</h1>
+        <p class="last-update">Last updated: {{ current_time }}</p>
+        <button id="refresh" class="btn btn-primary refresh-btn">
+            <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col">
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" data-bs-toggle="tab" href="#points" role="tab">Points</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#assists" role="tab">Assists</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#rebounds" role="tab">Rebounds</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#threes" role="tab">Threes</a>
+            </li>
+        </ul>
+
+        <div class="tab-content mt-3">
+            <div class="tab-pane fade show active" id="points" role="tabpanel">
+                <div class="form-group mb-3">
+                    <label for="points-min">Minimum Line:</label>
+                    <input type="number" id="points-min" class="form-control" value="15" style="width: 100px;">
+                </div>
+                <div class="table-responsive">
+                    <table id="points-table" class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Player</th>
+                                <th>Line</th>
+                                <th>Odds</th>
+                                <th>Side</th>
+                                <th>Book</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="assists" role="tabpanel">
+                <div class="form-group mb-3">
+                    <label for="assists-min">Minimum Line:</label>
+                    <input type="number" id="assists-min" class="form-control" value="5" style="width: 100px;">
+                </div>
+                <div class="table-responsive">
+                    <table id="assists-table" class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Player</th>
+                                <th>Line</th>
+                                <th>Odds</th>
+                                <th>Side</th>
+                                <th>Book</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="rebounds" role="tabpanel">
+                <div class="form-group mb-3">
+                    <label for="rebounds-min">Minimum Line:</label>
+                    <input type="number" id="rebounds-min" class="form-control" value="5" style="width: 100px;">
+                </div>
+                <div class="table-responsive">
+                    <table id="rebounds-table" class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Player</th>
+                                <th>Line</th>
+                                <th>Odds</th>
+                                <th>Side</th>
+                                <th>Book</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="threes" role="tabpanel">
+                <div class="form-group mb-3">
+                    <label for="threes-min">Minimum Line:</label>
+                    <input type="number" id="threes-min" class="form-control" value="2" style="width: 100px;">
+                </div>
+                <div class="table-responsive">
+                    <table id="threes-table" class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Player</th>
+                                <th>Line</th>
+                                <th>Odds</th>
+                                <th>Side</th>
+                                <th>Book</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Best Odds Modal -->
+<div class="modal fade" id="best-odds-modal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Best Available Odds</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="best-odds-content"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    const gameId = '{{ game.id }}';
+    let tables = {};
+    
+    // Initialize DataTables
+    function initTables() {
+        ['points', 'assists', 'rebounds', 'threes'].forEach(type => {
+            if (tables[type]) {
+                tables[type].destroy();
+            }
+            
+            tables[type] = $(`#${type}-table`).DataTable({
+                order: [[1, 'desc']],
+                pageLength: 25
+            });
+        });
+    }
+    
+    // Load props data
+    function loadProps(type) {
+        const minLine = $(`#${type}-min`).val();
+        $.get(`/api/props/${gameId}?type=${type}&min_line=${minLine}`, function(data) {
+            if (data.success) {
+                const table = tables[type];
+                table.clear();
+                
+                data.props.forEach(prop => {
+                    table.row.add([
+                        prop.player,
+                        prop.line,
+                        `<span class="${prop.odds.startsWith('+') ? 'positive-odds' : 'negative-odds'}">${prop.odds}</span>`,
+                        prop.side,
+                        prop.book,
+                        `<button class="btn btn-info btn-sm best-odds" data-player="${prop.player}" data-type="${type}">Best Odds</button>`
+                    ]);
+                });
+                
+                table.draw();
+            }
+        });
+    }
+    
+    // Load data for current tab
+    function loadData() {
+        const type = $('.nav-link.active').attr('href').substring(1);
+        loadProps(type);
+    }
+
+    // Initialize tables
+    initTables();
+    
+    // Load initial data
+    loadData();
+
+    // Handle tab changes
+    $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function(e) {
+        const type = $(e.target).attr('href').substring(1);
+        loadProps(type);
+    });
+
+    // Handle min line changes
+    $('input[type="number"]').change(function() {
+        const type = $(this).attr('id').split('-')[0];
+        loadProps(type);
+    });
+
+    // Handle best odds button
+    $(document).on('click', '.best-odds', function() {
+        const player = $(this).data('player');
+        const type = $(this).data('type');
+        
+        $.get(`/api/best_odds/${gameId}/${encodeURIComponent(player)}?type=${type}`, function(data) {
+            if (data.success) {
+                let html = `<h6>${player} - ${type}</h6>`;
+                ['over', 'under'].forEach(side => {
+                    const odds = data.odds[side];
+                    html += `<p><strong>${side.toUpperCase()}:</strong> ${odds.line} `;
+                    html += `<span class="${odds.odds > 0 ? 'positive-odds' : 'negative-odds'}">`;
+                    html += `(${odds.odds > 0 ? '+' : ''}${odds.odds})</span> @ ${odds.book}</p>`;
+                });
+                $('#best-odds-content').html(html);
+                $('#best-odds-modal').modal('show');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

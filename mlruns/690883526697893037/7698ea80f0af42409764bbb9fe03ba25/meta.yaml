@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/chevyp/Development/plus-ev-model/mlruns/690883526697893037/7698ea80f0af42409764bbb9fe03ba25/artifacts
+end_time: null
+entry_point_name: ''
+experiment_id: '690883526697893037'
+lifecycle_stage: active
+run_id: 7698ea80f0af42409764bbb9fe03ba25
+run_name: h2o_automl_points
+run_uuid: 7698ea80f0af42409764bbb9fe03ba25
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1737946620639
+status: 1
+tags: []
+user_id: chevyp

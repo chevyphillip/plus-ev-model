@@ -1,0 +1,27 @@
+{
+  "prop_type": "rebounds",
+  "trained_at": "2025-01-26T21:48:22.058717",
+  "metrics": {
+    "mse": 3.8678370667812163,
+    "rmse": 1.9666817400843524,
+    "mae": 1.4746792022001538,
+    "r2": 0.6873082180006544
+  },
+  "feature_names": [
+    "reb_rolling_5",
+    "reb_rolling_10",
+    "reb_rolling_20",
+    "min",
+    "is_home",
+    "opp_pts_allowed_avg",
+    "fg_pct_rolling_5",
+    "fg_pct_rolling_10",
+    "fg_pct_rolling_20",
+    "plus_minus_rolling_5",
+    "plus_minus_rolling_10",
+    "plus_minus_rolling_20",
+    "reb_home",
+    "reb_away",
+    "opp_reb_rate"
+  ]
+}

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}NBA Games - Props{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col">
+        <h1>NBA Games</h1>
+        <p class="last-update">Last updated: {{ current_time }}</p>
+        <button id="refresh" class="btn btn-primary refresh-btn">
+            <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col">
+        <div class="table-responsive">
+            <table id="games-table" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Away Team</th>
+                        <th>Home Team</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for game in games %}
+                    <tr>
+                        <td class="date-format">{{ game.commence_time }}</td>
+                        <td>{{ game.away_team }}</td>
+                        <td>{{ game.home_team }}</td>
+                        <td>
+                            <a href="/props/{{ game.id }}" class="btn btn-primary btn-sm">
+                                View Props
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    let table;
+    
+    // Initialize DataTable
+    function initTable() {
+        if (table) {
+            table.destroy();
+        }
+        
+        table = $('#games-table').DataTable({
+            order: [[0, 'asc']],
+            pageLength: 25
+        });
+    }
+    
+    // Load games data
+    function loadData() {
+        $.get('/', function(html) {
+            const newContent = $(html).find('#games-table tbody').html();
+            $('#games-table tbody').html(newContent);
+            initTable();
+            formatDates();
+        });
+    }
+    
+    // Initialize table
+    initTable();
+});
+</script>
+{% endblock %}

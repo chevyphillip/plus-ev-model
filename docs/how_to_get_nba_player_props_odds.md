@@ -87,7 +87,13 @@ Sample Data:
 
 ## TAKE THE ID FROM THE EVENTS TO GET EACH PLAYER PROPS
 
-<https://api.the-odds-api.com/v4/sports/basketball_nba/events/240a84b2dddf3a224173e70c23b1d624/odds?apiKey=bcab2a03da8de48a2a68698a40b78b4c&regions=eu,us,us2,us_dfs,us_ex&markets=player_points,player_rebounds,player_assists,player_threes,player_blocks,player_steals,player_first_basket,player_double_double,player_triple_double,player_method_of_first_basket&oddsFormat=american>
+<https://api.the-odds-api.com/v4/sports/basketball_nba/events/cf4360ae388e3a68fb1c2aea7c890815/odds?apiKey=bcab2a03da8de48a2a68698a40b78b4c&regions=eu,us,us2,us_dfs,us_ex&markets=player_points,player_rebounds,player_assists,player_threes,player_blocks,player_steals,player_first_basket,player_double_double,player_triple_double,player_method_of_first_basket&oddsFormat=american>
+
+## GET LIVE AND UPCOMING GAME SCORES
+
+<https://api.the-odds-api.com/v4/sports/basketball_nba/scores/?daysFrom=1&apiKey=bcab2a03da8de48a2a68698a40b78b4c&eventIds=cf4360ae388e3a68fb1c2aea7c890815>
+
+#
 
 ## Markets
 

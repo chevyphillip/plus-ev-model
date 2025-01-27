@@ -1,0 +1,246 @@
+Model Validation Report
+==============================
+Generated: 2025-01-26 11:56:39
+
+
+Data Quality Check
+--------------------
+
+Points:
+  total_rows: 23321
+  pts_rolling_5_nulls: 0
+  pts_rolling_10_nulls: 0
+  pts_rolling_20_nulls: 0
+  pts_home_nulls: 0
+  pts_away_nulls: 0
+  min_nulls: 0
+  fg_pct_nulls: 0
+  fg3_pct_nulls: 0
+  ft_pct_nulls: 0
+  is_home_nulls: 0
+  plus_minus_nulls: 0
+  opp_pts_allowed_avg_nulls: 0
+  opp_ast_allowed_avg_nulls: 0
+  opp_reb_rate_nulls: 0
+
+Rebounds:
+  total_rows: 23321
+  reb_rolling_5_nulls: 0
+  reb_rolling_10_nulls: 0
+  reb_rolling_20_nulls: 0
+  reb_home_nulls: 0
+  reb_away_nulls: 0
+  min_nulls: 0
+  is_home_nulls: 0
+  plus_minus_nulls: 0
+  opp_pts_allowed_avg_nulls: 0
+  opp_reb_rate_nulls: 0
+
+Assists:
+  total_rows: 23321
+  ast_rolling_5_nulls: 0
+  ast_rolling_10_nulls: 0
+  ast_rolling_20_nulls: 0
+  ast_home_nulls: 0
+  ast_away_nulls: 0
+  min_nulls: 0
+  is_home_nulls: 0
+  plus_minus_nulls: 0
+  opp_pts_allowed_avg_nulls: 0
+  opp_ast_allowed_avg_nulls: 0
+
+Threes:
+  total_rows: 23321
+  fg3_pct_rolling_5_nulls: 0
+  fg3_pct_rolling_10_nulls: 0
+  fg3_pct_rolling_20_nulls: 0
+  min_nulls: 0
+  is_home_nulls: 0
+  plus_minus_nulls: 0
+  opp_pts_allowed_avg_nulls: 0
+  opp_ast_allowed_avg_nulls: 0
+
+Rolling Window Validation
+--------------------
+
+Points:
+  5_day_mae: 3.524
+  5_day_max_diff: 24.000
+  10_day_mae: 3.595
+  10_day_max_diff: 29.600
+  20_day_mae: 3.692
+  20_day_max_diff: 31.250
+
+Rebounds:
+  5_day_mae: 1.463
+  5_day_max_diff: 13.200
+  10_day_mae: 1.463
+  10_day_max_diff: 14.125
+  20_day_mae: 1.453
+  20_day_max_diff: 14.125
+
+Assists:
+  5_day_mae: 1.026
+  5_day_max_diff: 7.000
+  10_day_mae: 1.053
+  10_day_max_diff: 8.800
+  20_day_mae: 1.050
+  20_day_max_diff: 8.833
+
+Threes:
+  5_day_mae: 0.137
+  5_day_max_diff: 0.800
+  10_day_mae: 0.140
+  10_day_max_diff: 0.900
+  20_day_mae: 0.139
+  20_day_max_diff: 0.938
+
+Backtesting Results
+--------------------
+
+Points:
+  total_predictions: 4384.000
+  rmse: 5.277
+  mae: 4.002
+  r2: 0.648
+  error_std: 5.276
+  error_95th: 10.800
+  error_max: 29.400
+
+Rebounds:
+  total_predictions: 4384.000
+  rmse: 2.192
+  mae: 1.640
+  r2: 0.620
+  error_std: 2.192
+  error_95th: 4.400
+  error_max: 13.400
+
+Assists:
+  total_predictions: 4384.000
+  rmse: 1.671
+  mae: 1.231
+  r2: 0.636
+  error_std: 1.671
+  error_95th: 3.400
+  error_max: 9.400
+
+Threes:
+  total_predictions: 4384.000
+  rmse: 0.238
+  mae: 0.172
+  r2: 0.333
+  error_std: 0.238
+  error_95th: 0.500
+  error_max: 0.800
+
+Confidence Intervals (95%)
+--------------------
+
+Points:
+  Overall:
+    mean_error: 0.072
+    error_std: 5.144
+    interval_width: 8.430
+  By Prediction Range:
+    -0.0-4.8:
+      mean_error: 0.063
+      error_std: 2.739
+      interval_width: 4.488
+    4.8-8.0:
+      mean_error: 0.179
+      error_std: 4.163
+      interval_width: 6.823
+    8.0-12.0:
+      mean_error: 0.146
+      error_std: 5.090
+      interval_width: 8.342
+    12.0-17.8:
+      mean_error: -0.035
+      error_std: 5.808
+      interval_width: 9.519
+    17.8-44.2:
+      mean_error: 0.004
+      error_std: 6.946
+      interval_width: 11.383
+
+Rebounds:
+  Overall:
+    mean_error: 0.015
+    error_std: 2.136
+    interval_width: 3.529
+  By Prediction Range:
+    -0.0-2.0:
+      mean_error: 0.028
+      error_std: 1.143
+      interval_width: 1.888
+    2.0-3.2:
+      mean_error: 0.034
+      error_std: 1.735
+      interval_width: 2.865
+    3.2-4.4:
+      mean_error: 0.007
+      error_std: 2.033
+      interval_width: 3.358
+    4.4-6.2:
+      mean_error: 0.010
+      error_std: 2.353
+      interval_width: 3.886
+    6.2-19.4:
+      mean_error: -0.005
+      error_std: 3.053
+      interval_width: 5.043
+
+Assists:
+  Overall:
+    mean_error: 0.021
+    error_std: 1.579
+    interval_width: 2.598
+  By Prediction Range:
+    -0.0-0.8:
+      mean_error: 0.023
+      error_std: 0.666
+      interval_width: 1.096
+    0.8-1.6:
+      mean_error: 0.025
+      error_std: 1.100
+      interval_width: 1.811
+    1.6-2.6:
+      mean_error: 0.033
+      error_std: 1.479
+      interval_width: 2.433
+    2.6-4.2:
+      mean_error: -0.002
+      error_std: 1.771
+      interval_width: 2.914
+    4.2-16.8:
+      mean_error: 0.024
+      error_std: 2.434
+      interval_width: 4.006
+
+Threes:
+  Overall:
+    mean_error: 0.001
+    error_std: 0.234
+    interval_width: 0.384
+  By Prediction Range:
+    -0.0-0.1:
+      mean_error: 0.001
+      error_std: 0.082
+      interval_width: 0.134
+    0.1-0.2:
+      mean_error: 0.003
+      error_std: 0.264
+      interval_width: 0.433
+    0.2-0.3:
+      mean_error: 0.002
+      error_std: 0.257
+      interval_width: 0.421
+    0.3-0.4:
+      mean_error: 0.002
+      error_std: 0.254
+      interval_width: 0.416
+    0.4-1.0:
+      mean_error: -0.003
+      error_std: 0.267
+      interval_width: 0.439

@@ -1,0 +1,26 @@
+{
+  "prop_type": "threes",
+  "trained_at": "2025-01-26T21:48:32.439955",
+  "metrics": {
+    "mse": 5.31525127578593,
+    "rmse": 2.3054828725856824,
+    "mae": 1.6563605183697783,
+    "r2": 0.3831493926803584
+  },
+  "feature_names": [
+    "fg3m_rolling_5",
+    "fg3m_rolling_10",
+    "fg3m_rolling_20",
+    "min",
+    "is_home",
+    "opp_pts_allowed_avg",
+    "fg3_pct_rolling_5",
+    "fg3_pct_rolling_10",
+    "fg3_pct_rolling_20",
+    "plus_minus_rolling_5",
+    "plus_minus_rolling_10",
+    "plus_minus_rolling_20",
+    "fg3m_home",
+    "fg3m_away"
+  ]
+}

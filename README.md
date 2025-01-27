@@ -1,103 +1,160 @@
 # NBA Player Props Prediction Model
 
-A machine learning model for predicting NBA player performance, focusing on assist props and using historical data for accurate predictions.
+A machine learning system for predicting NBA player prop bets and identifying edges against sportsbook lines.
+
+## Features
+
+- Historical NBA stats collection via NBA API
+- Advanced feature engineering including:
+  - Rolling averages across multiple windows
+  - Home/Away splits
+  - Opponent strength metrics
+  - Player trend analysis
+- Ridge regression model for prop predictions
+- Edge calculation against market lines
+- Kelly criterion bet sizing
+- DuckDB + MotherDuck for efficient data storage
 
 ## Project Structure
 
 ```
 plus-ev-model/
 ├── data/                  # Data storage
-│   └── nba_stats.duckdb  # DuckDB database with NBA stats
-├── docs/                  # Documentation
+│   ├── raw/              # Raw API data
+│   ├── processed/        # Cleaned data
+│   ├── interim/          # Intermediate processing
+│   └── external/         # Third-party data
+├── docs/                 # Documentation
 ├── src/                  # Source code
-│   ├── data/            # Data ingestion and processing
+│   ├── data/            # Data collection
+│   │   ├── nba_stats.py           # NBA API data pipeline
+│   │   ├── nba_stats_career.py    # Career stats collection
+│   │   └── db_config.py           # Database configuration
 │   ├── models/          # ML models
+│   │   ├── player_props_model.py  # Base props prediction model
+│   │   └── predict_props.py       # Prediction script
 │   └── core/            # Core utilities
+│       ├── devig.py               # Odds processing
+│       ├── monte_carlo.py         # Simulation tools
+│       └── edge_calculator.py     # Betting edge analysis
 └── tests/               # Test suite
 ```
 
-## Features
+## Setup
 
-- NBA stats data pipeline with DuckDB storage
-- Logistic regression model for predicting 5+ assists
-- Rolling statistics and feature engineering
-- Model evaluation and performance metrics
-- Player-specific predictions with probability scores
-
-## Model Performance
-
-- Accuracy: 92.2%
-- Precision: 80.0%
-- ROC AUC: 97.6%
-- Feature importance analysis shows rolling 5-game assist average as the strongest predictor
-
-## Installation
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/yourusername/plus-ev-model.git
-cd plus-ev-model
-```
-
-2. Install dependencies using Poetry:
+1. Install dependencies:
 
 ```bash
 poetry install
 ```
 
+2. Set up environment variables in `.env`:
+
+```env
+LOCAL_DB_PATH=data/nba_stats.duckdb
+MOTHERDUCK_TOKEN=your_token_here
+NBA_API_DELAY=1.0
+```
+
+3. Initialize database:
+
+```bash
+python -m src.data.nba_stats
+```
+
 ## Usage
 
-### Data Pipeline
+### Fetch NBA Stats
 
-Update NBA stats data:
+```python
+from src.data.nba_stats import update_player_stats
 
-```bash
-python src/data/nba_stats.py
+# Update stats in database
+update_player_stats()
 ```
 
-### Assist Prediction
+### Predict Player Props
 
-Make predictions for specific players:
+```python
+from src.models.predict_props import analyze_player_prop
 
-```bash
-python src/models/predict_assists.py
+# Analyze a single prop
+result = analyze_player_prop(
+    player_id=2544,  # LeBron James
+    prop_type='points',
+    line=25.5,
+    over_odds=-110,
+    under_odds=-110
+)
+
+# Print recommendation
+if result['recommendation']:
+    rec = result['recommendation']
+    print(f"Bet: {rec['bet_type']} {rec['line']}")
+    print(f"Edge: {rec['edge']:.1%}")
+    print(f"Kelly: {rec['kelly_bet']:.1%}")
 ```
 
-Example output:
+### Analyze Multiple Props
 
+```python
+from src.models.predict_props import analyze_multiple_props
+
+props = [
+    {
+        'player_id': 2544,
+        'prop_type': 'points',
+        'line': 25.5
+    },
+    {
+        'player_id': 2544,
+        'prop_type': 'assists',
+        'line': 7.5
+    }
+]
+
+results = analyze_multiple_props(props)
 ```
-Predictions Summary:
--------------------
-Trae Young:
-  Probability of 5+ assists: 99.9%
-  Recent assist average: 10.6
-  Prediction: OVER 5 assists
-```
 
-## Development
+## Model Details
 
-### Running Tests
+### Feature Engineering
 
-```bash
-python -m pytest tests/
-```
+The model uses several types of features:
 
-### Project Organization
+- Rolling averages (5, 10, 20 game windows)
+- Home/Away performance splits
+- Opponent strength indicators
+- Recent performance trends
+- Player consistency metrics
 
-- `src/data/nba_stats.py`: NBA stats data pipeline
-- `src/models/assist_prediction.py`: Core prediction model
-- `src/models/predict_assists.py`: Prediction interface
-- `tests/`: Unit tests and integration tests
+### Edge Calculation
 
-## Documentation
+Edges are calculated by:
 
-Detailed documentation is available in the `docs/` directory:
+1. Converting model predictions to probabilities
+2. Comparing to market implied probabilities
+3. Applying Kelly criterion for optimal bet sizing
+4. Filtering by confidence threshold
 
-- [Setup Guide](docs/setup.md)
-- [Technical Requirements](docs/technical_requirements.md)
-- [Methodology](docs/methodology.md)
+### Performance Metrics
+
+The model is evaluated on:
+
+- Root Mean Squared Error (RMSE)
+- Mean Absolute Error (MAE)
+- R-squared (R2)
+- Prediction vs. Actual correlation
+- ROI on historical bets
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit changes
+4. Push to the branch
+5. Create a pull request
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT License - see LICENSE file for details

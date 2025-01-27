@@ -2,9 +2,9 @@
 Module for fetching and processing NBA player props odds from ODDS API.
 """
 from dataclasses import dataclass
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 import os
-from typing import Dict, List, Optional, Set, Tuple, Any, Dict, List
+from typing import Dict, List, Optional, Set, Tuple, Any, Dict, List, cast
 import requests
 from dotenv import load_dotenv
 import re
@@ -39,7 +39,10 @@ class OddsAPIClient:
         "player_triple_double",
         "player_method_of_first_basket"
     ]
-    SHARP_BOOKS = {"pinnacle", "betonlineag"}  # Case-insensitive
+    SHARP_BOOKS = {
+        "betonlineag", "betmgm", "betrivers", "draftkings", 
+        "fanduel", "ballybet", "espnbet"
+    }  # Case-insensitive
     
     def __init__(self, api_key: Optional[str] = None) -> None:
         """Initialize client with API key"""
@@ -66,7 +69,7 @@ class OddsAPIClient:
         try:
             response = self.session.get(url, params=params)
             response.raise_for_status()
-            return response.json()
+            return cast(Dict[str, Any], response.json())
         except requests.exceptions.RequestException as e:
             if isinstance(e, requests.exceptions.HTTPError):
                 if e.response.status_code == 401:
@@ -189,8 +192,8 @@ class OddsAPIClient:
                     _, under_odds = self._extract_line_and_odds(under_outcome)
                     
                     # Convert decimal odds to American
-                    over_american = round((over_odds - 1) * 100) if over_odds >= 2 else round(-100 / (over_odds - 1))
-                    under_american = round((under_odds - 1) * 100) if under_odds >= 2 else round(-100 / (under_odds - 1))
+                    over_american = int(round((over_odds - 1) * 100) if over_odds >= 2 else round(-100 / (over_odds - 1)))
+                    under_american = int(round((under_odds - 1) * 100) if under_odds >= 2 else round(-100 / (under_odds - 1)))
                     
                     # Assign weights (Pinnacle higher weight)
                     weight = 0.6 if book_key == "pinnacle" else 0.4
@@ -343,7 +346,7 @@ class OddsAPIClient:
                                         prop_type=self._parse_prop_type(market_key),
                                         line=line,
                                         sharp_odds=sharp_odds,
-                                        timestamp=datetime.now(UTC).isoformat()
+                                        timestamp=datetime.now(timezone.utc).isoformat()
                                     ))
                                     processed.add(player)
                 

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}NBA Props{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <style>
+        .positive-odds { color: green; }
+        .negative-odds { color: red; }
+        .edge { font-weight: bold; }
+        .refresh-btn { margin: 10px 0; }
+        .last-update { font-size: 0.8em; color: #666; }
+        .loading { opacity: 0.5; pointer-events: none; }
+        .error { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">NBA Props</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Games</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/edges">Edges</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        // Auto-refresh functionality
+        function startAutoRefresh() {
+            setInterval(function() {
+                if (typeof loadData === 'function') {
+                    loadData();
+                    $('.last-update').text('Last updated: ' + new Date().toLocaleString());
+                }
+            }, 60000);  // Refresh every minute
+        }
+        
+        // Format dates
+        function formatDates() {
+            $('.date-format').each(function() {
+                let date = new Date($(this).text());
+                $(this).text(date.toLocaleString());
+            });
+        }
+        
+        // Initialize common functionality
+        $(document).ready(function() {
+            // Format dates
+            formatDates();
+            
+            // Start auto-refresh
+            startAutoRefresh();
+            
+            // Handle refresh button
+            $('#refresh').click(function() {
+                if (typeof loadData === 'function') {
+                    loadData();
+                    $('.last-update').text('Last updated: ' + new Date().toLocaleString());
+                }
+            });
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
